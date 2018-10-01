@@ -6,23 +6,25 @@ import * as io from 'socket.io-client';
   styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
-  userName : string = '';
+  userName: string = '';
+  time: Date;
   title = 'Socket POC';
   private url = 'http://localhost:3000';
-  private socket;    
+  private socket;
+
   constructor() {
-      this.socket = io(this.url);
+    this.socket = io(this.url);
   }
-  
+
   ngOnInit() {
     this.socket.on('pushMsg', (data) => {
-      alert(data.msg);
+      this.time = data.msg;
     });
   }
 
   registerUser(event) {
-    event.preventDefault();  
-    this.socket.emit('join',{"email":this.userName});
+    event.preventDefault();
+    this.socket.emit('join', { "email": this.userName });
   }
 
 }

@@ -1,42 +1,41 @@
-const express =  require('express');
-const app =  express();
-const http = require('http').Server(app);
-const io = require('socket.io')(http);
-let connectedUsers = [];
+const restify = require('restify');
+const server = restify.createServer();
+const io = require('socket.io')(server.server);
+let connectedUsers = {};
+let interval;
 
-app.get('/sendToClient/:email',(req,res)=>{    
-    if(connectedUsers[req.params.email]) {
-        connectedUsers[req.params.email].emit('pushMsg', {'msg':'msg'});    
-    } else {
-        console.log('user not in online');
-    }
-    res.end();
-});
-
-const deregisterClient =  (socket) => {
+const deregisterClient = (socket) => {
     delete connectedUsers[socket.id];
+    if (Object.keys(connectedUsers).length === 0) {
+        clearInterval(interval);
+        console.log('No client is connected');
+    }
 }
 
-const registerClient = (socket,data) => { 
-    socket.id = data.email;
-    connectedUsers.push(data.email);
-    connectedUsers[data.email] = socket;  
+const registerClient = (socket) => {
+
+    connectedUsers[socket.id] = socket;
+    if (Object.keys(connectedUsers).length === 1) {
+        interval = setInterval(() => {
+            for (let key in connectedUsers) {
+                connectedUsers[key].emit('pushMsg', { 'msg': new Date });
+            }
+        }, 0);
+    }
 }
 
+const afterConnect = (socket) => {
 
-const afterConnect = (socket) => {    
+    registerClient(socket);
 
-   socket.on('join',(data)=>{
-        registerClient(socket,data);        
-    });
-
-    socket.on('disconnect',() => {
+    socket.on('disconnect', () => {
         deregisterClient(socket)
-    });    
+    });
 }
 
-io.on('connect',afterConnect);
+io.on('connect', afterConnect);
 
-http.listen(3000, function(){
+server.listen(3000, function () {
     console.log('listening on *:3000');
 });
+
